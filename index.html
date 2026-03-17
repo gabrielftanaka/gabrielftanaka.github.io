@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tanaka ~ $</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0b0b;--bg2:#111111;--fg:#b8b8b8;--faint:#1e1e1e;
+  --border:#2a2a2a;--dim:#4a4a4a;--bright:#e8e8e8;
+  --accent:#a855f7;--accent2:#5b21b6;--red:#ff3333;
+  --mono:'IBM Plex Mono',monospace;
+}
+html{font-size:15px;scroll-behavior:auto}
+body{background:var(--bg);color:var(--fg);font-family:var(--mono);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::-webkit-scrollbar{width:2px}
+::-webkit-scrollbar-thumb{background:var(--border)}
+
+#overlay{display:none;position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden}
+#overlay canvas{position:absolute;inset:0;width:100%;height:100%}
+#overlay-flash{position:absolute;inset:0;background:var(--bg);opacity:0}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;justify-content:space-between;align-items:center;padding:18px 32px;background:linear-gradient(to bottom,var(--bg) 55%,transparent)}
+.nav-logo{font-size:13px;color:var(--bright);text-decoration:none;letter-spacing:.02em;white-space:nowrap}
+.nav-logo span{color:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:20px}
+.nav-links{display:flex;gap:28px;list-style:none}
+.nav-links a{font-size:12px;color:var(--dim);text-decoration:none;letter-spacing:.1em;text-transform:lowercase;transition:color .2s;position:relative}
+.nav-links a::before{content:'./';color:var(--accent);opacity:0;margin-right:2px;transition:opacity .2s}
+.nav-links a:hover{color:var(--bright)}
+.nav-links a:hover::before{opacity:1}
+
+.lang-toggle{display:flex;border:1px solid var(--border);overflow:hidden;flex-shrink:0}
+.lang-btn{font-family:var(--mono);font-size:11px;letter-spacing:.1em;padding:4px 9px;background:transparent;color:var(--dim);border:none;cursor:pointer;transition:background .15s,color .15s;text-transform:uppercase}
+.lang-btn.active{background:var(--accent);color:var(--bg);font-weight:500}
+.lang-btn:not(.active):hover{color:var(--bright)}
+
+.nav-toggle{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+.nav-toggle span{display:block;width:22px;height:1px;background:var(--dim);transition:all .25s}
+.nav-toggle.open span:nth-child(1){transform:translateY(6px) rotate(45deg);background:var(--accent)}
+.nav-toggle.open span:nth-child(2){opacity:0}
+.nav-toggle.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);background:var(--accent)}
+
+.nav-drawer{display:none;position:fixed;top:0;left:0;right:0;background:var(--bg);border-bottom:1px solid var(--border);padding:68px 24px 24px;z-index:150;flex-direction:column;transform:translateY(-100%);transition:transform .3s cubic-bezier(.16,1,.3,1)}
+.nav-drawer.open{transform:translateY(0)}
+.nav-drawer a{display:block;padding:13px 0;border-bottom:1px solid var(--faint);font-size:13px;color:var(--fg);text-decoration:none;letter-spacing:.08em;text-transform:lowercase;transition:color .2s}
+.nav-drawer a::before{content:'./';color:var(--accent);margin-right:4px}
+.nav-drawer a:hover{color:var(--bright)}
+.drawer-lang{display:flex;gap:12px;padding:16px 0 0}
+.drawer-lang button{font-family:var(--mono);font-size:12px;letter-spacing:.08em;padding:6px 14px;background:transparent;border:1px solid var(--border);color:var(--dim);cursor:pointer;text-transform:uppercase}
+.drawer-lang button.active{border-color:var(--accent);color:var(--accent)}
+
+.page{display:none;min-height:100vh;padding:0 32px;max-width:720px;margin:0 auto}
+.page.active{display:block;animation:pageFadeIn .2s ease forwards}
+@keyframes pageFadeIn{from{opacity:0}to{opacity:1}}
+#page-hero{display:none;align-items:center;justify-content:center;min-height:100vh;padding:80px 24px 60px;max-width:100%}
+#page-hero.active{display:flex}
+
+.term-window{width:100%;max-width:680px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);box-shadow:0 0 0 1px rgba(168,85,247,.04),0 24px 64px rgba(0,0,0,.7),0 4px 16px rgba(0,0,0,.5);overflow:hidden;animation:windowAppear .5s cubic-bezier(.16,1,.3,1) both}
+@keyframes windowAppear{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.term-titlebar{display:flex;align-items:center;height:38px;background:var(--faint);border-bottom:1px solid var(--border);position:relative;user-select:none}
+.term-dots{display:flex;align-items:center;gap:7px;padding:0 14px}
+.dot{width:12px;height:12px;border-radius:50%}
+.dot-r{background:#ff5f56;box-shadow:0 0 0 1px rgba(255,95,86,.25)}
+.dot-y{background:#ffbd2e;box-shadow:0 0 0 1px rgba(255,189,46,.25)}
+.dot-g{background:#a855f7;box-shadow:0 0 0 1px rgba(168,85,247,.25)}
+.term-title-text{position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--dim);letter-spacing:.05em;white-space:nowrap}
+.term-tabbar{display:flex;align-items:flex-end;background:var(--bg);border-bottom:1px solid var(--border);padding:0 14px;gap:2px}
+.term-tab{font-size:11px;color:var(--dim);padding:6px 14px;border:1px solid transparent;border-bottom:none;letter-spacing:.04em;position:relative;top:1px}
+.term-tab.active{color:var(--fg);background:var(--bg2);border-color:var(--border);border-bottom-color:var(--bg2)}
+.term-body{padding:18px 22px 22px;min-height:280px}
+.term-prompt-path{display:block;font-size:11px;color:var(--dim);margin-bottom:4px;letter-spacing:.04em}
+.ppc{color:var(--accent)}.ppb{color:#6699ff}
+.term-out{font-size:13.5px;line-height:1.95}
+.tl{display:block;white-space:pre-wrap;word-break:break-all}
+.blank{display:block;height:1.5em}
+.p{color:var(--dim)}.cmd{color:var(--bright)}.kw{color:var(--accent)}.str{color:var(--fg)}.cm{color:var(--dim);font-style:italic}
+.cur{display:inline-block;width:8px;height:13px;background:var(--accent);vertical-align:middle;margin-left:1px;animation:bl 1.1s step-end infinite}
+@keyframes bl{50%{opacity:0}}
+.term-hex{padding:10px 22px 13px;font-size:10px;color:var(--border);letter-spacing:.1em;overflow:hidden;white-space:nowrap;user-select:none;border-top:1px solid var(--faint)}
+.nudge{position:fixed;bottom:20px;right:28px;font-size:11px;color:var(--dim);letter-spacing:.1em;opacity:0;transition:opacity .8s;pointer-events:none}
+.nudge.show{opacity:1}
+.nudge span{color:var(--accent)}
+
+.page-inner{padding-top:110px;padding-bottom:80px}
+.sec-label{font-size:11px;color:var(--dim);letter-spacing:.2em;text-transform:uppercase;margin-bottom:48px;display:flex;align-items:center;gap:12px}
+.sec-label::before{content:'';width:18px;height:1px;background:var(--accent)}
+.sub-label{font-size:11px;color:var(--dim);letter-spacing:.2em;text-transform:uppercase;margin-bottom:24px;margin-top:52px;display:flex;align-items:center;gap:12px}
+.sub-label::before{content:'';width:10px;height:1px;background:var(--accent);opacity:.5}
+.reveal{opacity:0;transform:translateY(12px);transition:opacity .42s ease,transform .42s ease}
+.reveal.in{opacity:1;transform:none}
+
+#page-about p{font-size:14px;font-weight:300;line-height:1.95;color:var(--fg);margin-bottom:18px}
+#page-about p strong{color:var(--bright);font-weight:500}
+#page-about p .g{color:var(--accent)}
+.skills{margin-top:44px;margin-bottom:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border)}
+.skill-item{background:var(--bg);padding:13px 16px;font-size:12px;color:var(--dim);transition:color .2s,background .2s}
+.skill-item:hover{color:var(--accent);background:#111}
+.skill-item::before{content:'> ';color:var(--faint)}
+.exp-item{display:grid;grid-template-columns:108px 1fr;gap:0 28px;padding:20px 0;border-top:1px solid var(--faint)}
+.exp-item:last-child{border-bottom:1px solid var(--faint)}
+.exp-period{font-size:12px;color:var(--dim);line-height:1.5;padding-top:2px}
+.exp-role{font-size:14px;color:var(--bright);font-weight:500;margin-bottom:2px}
+.exp-co{font-size:12px;color:var(--dim);margin-bottom:8px}
+.exp-desc{font-size:13px;color:var(--fg);font-weight:300;line-height:1.8}
+
+.proj-item{display:grid;grid-template-columns:1fr auto;gap:16px;padding:24px 0;border-top:1px solid var(--faint);text-decoration:none;color:inherit}
+.proj-item:last-child{border-bottom:1px solid var(--faint)}
+.proj-item:hover .proj-name{animation:glitch .28s steps(1) forwards}
+@keyframes glitch{
+  0%{clip-path:inset(0 0 90% 0);transform:translateX(-2px);color:var(--red)}
+  25%{clip-path:inset(40% 0 40% 0);transform:translateX(2px)}
+  50%{clip-path:inset(75% 0 5% 0);transform:translateX(-1px)}
+  75%{clip-path:none;transform:none;color:var(--accent)}
+  100%{clip-path:none;transform:none;color:var(--accent)}
+}
+.proj-name{font-size:14px;color:var(--bright);font-weight:500;margin-bottom:5px;transition:color .2s}
+.proj-desc{font-size:13px;color:var(--dim);font-weight:300;line-height:1.75}
+.proj-stack{font-size:11px;color:var(--dim);text-align:right;line-height:2;white-space:nowrap;padding-top:2px}
+
+.blog-text{font-size:14px;font-weight:300;color:var(--fg);line-height:1.95;margin-bottom:32px}
+.blog-cta{font-size:13px;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s}
+.blog-cta:hover{border-color:var(--accent)}
+.blog-cta::after{content:' \2192'}
+.blog-post{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:16px 0;border-top:1px solid var(--faint);text-decoration:none;color:inherit}
+.blog-post:last-child{border-bottom:1px solid var(--faint)}
+.blog-post:hover .bp-t{color:var(--accent)}
+.blog-post:hover .bp-a{color:var(--accent);transform:translateX(3px)}
+.bp-t{font-size:14px;font-weight:300;color:var(--fg);transition:color .2s;line-height:1.4}
+.bp-a{font-size:13px;color:var(--faint);flex-shrink:0;transition:color .2s,transform .2s}
+
+.contact-intro{font-size:14px;font-weight:300;color:var(--fg);line-height:1.9;margin-bottom:36px}
+.contact-email{display:inline-block;font-size:19px;color:var(--bright);text-decoration:none;border-bottom:1px solid var(--faint);padding-bottom:3px;margin-bottom:48px;transition:color .2s,border-color .2s;word-break:break-all}
+.contact-email:hover{color:var(--accent);border-color:var(--accent)}
+.social-list{list-style:none}
+.social-list a{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:1px solid var(--faint);text-decoration:none}
+.social-list li:last-child a{border-bottom:1px solid var(--faint)}
+.social-list a:hover .sn{color:var(--accent)}
+.social-list a:hover .sa{color:var(--accent);transform:translateX(3px)}
+.sn{font-size:14px;color:var(--fg);font-weight:300;transition:color .2s}
+.sh{font-size:12px;color:var(--dim);margin-left:auto;margin-right:16px}
+.sa{font-size:13px;color:var(--faint);transition:color .2s,transform .2s}
+
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.03) 3px,rgba(0,0,0,.03) 4px);pointer-events:none;z-index:50}
+
+@media(max-width:768px){
+  nav{padding:16px 20px}
+  .nav-links,.lang-toggle{display:none}
+  .nav-toggle{display:flex}
+  .nav-drawer{display:flex}
+  .page{padding:0 20px}
+  #page-hero{padding:70px 16px 50px}
+  .term-body{padding:16px 16px 20px}
+  .term-hex{padding:8px 16px 12px}
+  .page-inner{padding-top:90px;padding-bottom:60px}
+  .skills{grid-template-columns:repeat(2,1fr)}
+  .exp-item{grid-template-columns:90px 1fr;gap:0 16px}
+  .proj-item{grid-template-columns:1fr;gap:10px}
+  .proj-stack{text-align:left}
+  .sh{display:none}
+  .nudge{bottom:16px;right:16px}
+}
+@media(max-width:480px){
+  html{font-size:14px}
+  nav{padding:14px 16px}
+  .nav-logo{font-size:12px}
+  #page-hero{padding:65px 12px 45px}
+  .dot{width:10px;height:10px}
+  .term-title-text{display:none}
+  .term-tab{padding:5px 10px}
+  .term-body{padding:14px 14px 18px;min-height:220px}
+  .term-out{font-size:12.5px}
+  .term-hex{font-size:9px}
+  .page{padding:0 16px}
+  .page-inner{padding-top:80px;padding-bottom:50px}
+  .skills{grid-template-columns:1fr 1fr}
+  .skill-item{padding:10px 12px;font-size:11px}
+  .exp-item{grid-template-columns:1fr;gap:4px 0}
+  .exp-period{margin-bottom:4px}
+  .contact-email{font-size:16px}
+  .blog-post{flex-direction:column;gap:6px}
+  .sec-label{margin-bottom:32px}
+}
+@media(max-width:360px){
+  html{font-size:13px}
+  .term-out{font-size:11.5px;line-height:1.8}
+  .term-tab:not(.active){display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <canvas id="rainCanvas"></canvas>
+  <div id="overlay-flash"></div>
+</div>
+
+<nav>
+  <a href="#" class="nav-logo" onclick="navigate('hero');return false;">
+    tanaka<span>@kali</span>:~<span>$</span>
+  </a>
+  <div class="nav-right">
+    <ul class="nav-links">
+      <li><a href="#" onclick="navigate('about');return false;" data-i18n="nav.about">sobre</a></li>
+      <li><a href="#" onclick="navigate('projects');return false;" data-i18n="nav.projects">projetos</a></li>
+      <li><a href="#" onclick="navigate('blog');return false;" data-i18n="nav.blog">blog</a></li>
+      <li><a href="#" onclick="navigate('contact');return false;" data-i18n="nav.contact">contato</a></li>
+    </ul>
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btn-pt" onclick="setLang('pt')">PT</button>
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu" onclick="toggleDrawer()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="nav-drawer" id="navDrawer">
+  <a href="#" onclick="navigate('about');closeDrawer();return false;" data-i18n="nav.about">sobre</a>
+  <a href="#" onclick="navigate('projects');closeDrawer();return false;" data-i18n="nav.projects">projetos</a>
+  <a href="#" onclick="navigate('blog');closeDrawer();return false;" data-i18n="nav.blog">blog</a>
+  <a href="#" onclick="navigate('contact');closeDrawer();return false;" data-i18n="nav.contact">contato</a>
+  <div class="drawer-lang">
+    <button id="dbtn-pt" class="active" onclick="setLang('pt')">PT</button>
+    <button id="dbtn-en" onclick="setLang('en')">EN</button>
+  </div>
+</div>
+
+<div class="page active" id="page-hero">
+  <div class="term-window">
+    <div class="term-titlebar">
+      <div class="term-dots">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+      </div>
+      <span class="term-title-text">bash &mdash; tanaka@kali: ~</span>
+    </div>
+    <div class="term-tabbar">
+      <div class="term-tab active">1: bash</div>
+      <div class="term-tab">2: ssh</div>
+      <div class="term-tab">3: htop</div>
+    </div>
+    <div class="term-body">
+      <span class="term-prompt-path"><span class="ppc">tanaka</span>@<span class="ppb">kali</span>:~</span>
+      <div class="term-out" id="out"></div>
+    </div>
+    <div class="term-hex" id="hexrow"></div>
+  </div>
+</div>
+
+<div class="page" id="page-about">
+  <div class="page-inner">
+    <div class="sec-label reveal" data-i18n="nav.about">sobre</div>
+    <p class="reveal" style="transition-delay:.04s" data-i18n-html="about.p1"></p>
+    <p class="reveal" style="transition-delay:.09s" data-i18n-html="about.p2"></p>
+    <p class="reveal" style="transition-delay:.14s" data-i18n="about.p3"></p>
+    <div class="skills reveal" style="transition-delay:.19s">
+      <div class="skill-item">reconnaissance</div>
+      <div class="skill-item">web exploitation</div>
+      <div class="skill-item">privilege escalation</div>
+      <div class="skill-item">incident response</div>
+      <div class="skill-item">CTI</div>
+      <div class="skill-item">scripting / python</div>
+      <div class="skill-item">powershell</div>
+      <div class="skill-item">linux</div>
+      <div class="skill-item">OSINT</div>
+    </div>
+    <div class="sub-label reveal" style="transition-delay:.21s" data-i18n="about.exp.title">experiência profissional</div>
+
+    <div class="reveal" style="transition-delay:.22s">
+      <div class="exp-item">
+        <div class="exp-period" data-i18n-html="about.exp1.period">2026 &mdash;<br>presente</div>
+        <div>
+          <div class="exp-role" data-i18n="about.exp1.role">Estagiário em Segurança da Informação</div>
+          <div class="exp-co" data-i18n="about.exp1.co">Banco Mercantil do Brasil</div>
+          <div class="exp-desc" data-i18n="about.exp1.desc">Atuação no time de Segurança em Infraestrutura, auxiliando em demandas, projetos e testes de segurança.</div>
+        </div>
+      </div>
+      <div class="exp-item">
+        <div class="exp-period">2025 &mdash; 2026</div>
+        <div>
+          <div class="exp-role" data-i18n="about.exp2.role">Estagiário em Segurança da Informação - Red Team</div>
+          <div class="exp-co" data-i18n="about.exp2.co">Interplayers</div>
+          <div class="exp-desc" data-i18n="about.exp2.desc">Apoio em execução de testes de intrusão (pentests), gestão de vulnerabilidades, elaboração de relatórios técnicos, participação em simulações e exercícios de Red Team e colaboração com times.</div>
+        </div>
+      </div>
+      <div class="exp-item">
+        <div class="exp-period">2024 &mdash; 2025</div>
+        <div>
+          <div class="exp-role" data-i18n="about.exp3.role">Estagiário em Suporte Técnico e Infraestrutura</div>
+          <div class="exp-co" data-i18n="about.exp3.co">Metal-Chek do Brasil</div>
+          <div class="exp-desc" data-i18n="about.exp3.desc">Prestação de suporte técnico N1 e N2, implantação e administração do Microsoft 365, gerenciamento e configuração de redes e regras e administração/manutenção do Active Directory.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-label reveal" style="transition-delay:.28s" data-i18n="about.edu.title">formação acadêmica</div>
+
+    <div class="reveal" style="transition-delay:.30s">
+      <div class="exp-item">
+        <div class="exp-period">2024 &mdash;<br>2026</div>
+        <div>
+          <div class="exp-role" data-i18n="about.edu1.role">Tecnólogo em Segurança Cibernética</div>
+          <div class="exp-co" data-i18n="about.edu1.co">FIAP - Faculdade de Informática e Administração Paulista</div>
+          <div class="exp-desc" data-i18n="about.edu1.desc">Participação em CTFs, </div>
+        </div>
+      </div>
+    </div>
+
+        <div class="reveal" style="transition-delay:.30s">
+      <div class="exp-item">
+        <div class="exp-period">2024 &mdash;<br>2028</div>
+        <div>
+          <div class="exp-role" data-i18n="about.edu2.role">Bacharelado em Engenharia de Computação</div>
+          <div class="exp-co" data-i18n="about.edu2.co">USF - Universidade São Francisco</div>
+          <div class="exp-desc" data-i18n="about.edu2.desc">Sólida formação em computação e ciclo básico de engenharia. São ofertadas diversas matérias essenciais para o mercado em TI, entre elas: programação estruturada, engenharia de software, estrutura de dados, arquitetura de computadores e tecnologias embarcadas, banco de dados, inteligência artificial, programação orientada a objetos, sistemas operacionais e distribuídos, redes de computadores, segurança da informação e entre outras.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="page" id="page-projects">
+  <div class="page-inner">
+    <div class="sec-label reveal" data-i18n="nav.projects">projetos</div>
+    <a href="#" class="proj-item reveal" style="transition-delay:.04s">
+      <div>
+        <div class="proj-name" data-i18n="proj.p1name">Em breve</div>
+        <div class="proj-desc" data-i18n="proj.p1">Em breve</div>
+      </div>
+      <div class="proj-stack">-<br>-<br>-</div>
+    </a>
+    <a href="#" class="proj-item reveal" style="transition-delay:.09s">
+      <div>
+        <div class="proj-name" data-i18n="proj.p2name">Em breve</div>
+        <div class="proj-desc" data-i18n="proj.p2">-</div>
+      </div>
+      <div class="proj-stack">-<br>-<br>-</div>
+    </a>
+    <a href="#" class="proj-item reveal" style="transition-delay:.14s">
+      <div>
+        <div class="proj-name" data-i18n="proj.p3name">Em breve</div>
+        <div class="proj-desc" data-i18n="proj.p3">-</div>
+      </div>
+      <div class="proj-stack">-<br>-</div>
+    </a>
+  </div>
+</div>
+
+<div class="page" id="page-blog">
+  <div class="page-inner">
+    <div class="sec-label reveal" data-i18n="nav.blog">blog</div>
+    <p class="blog-text reveal" style="transition-delay:.04s" data-i18n="blog.intro">Escrevo sobre seguranca ofensiva e desenvolvimento.</p>
+    <a href="https://tanakz.medium.com/" target="_blank" rel="noopener" class="blog-cta reveal" style="transition-delay:.09s" data-i18n="blog.cta">ver todos os textos no Medium</a>
+    <div style="margin-top:48px">
+      <a href="https://tanakz.medium.com/" target="_blank" class="blog-post reveal" style="transition-delay:.14s">
+        <span class="bp-t" data-i18n="blog.post1">Em breve.</span><span class="bp-a">&#8594;</span>
+      </a>
+      <a href="https://tanakz.medium.com/" target="_blank" class="blog-post reveal" style="transition-delay:.18s">
+        <span class="bp-t" data-i18n="blog.post2">Em breve.</span><span class="bp-a">&#8594;</span>
+      </a>
+      <a href="https://tanakz.medium.com/" target="_blank" class="blog-post reveal" style="transition-delay:.22s">
+        <span class="bp-t" data-i18n="blog.post3">Em breve.</span><span class="bp-a">&#8594;</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-contact">
+  <div class="page-inner">
+    <div class="sec-label reveal" data-i18n="nav.contact">contato</div>
+    <p class="contact-intro reveal" style="transition-delay:.04s" data-i18n="contact.intro">Quer discutir sobre segurança ou só trocar uma ideia? Me manda um e-mail!</p>
+    <a href="mailto:gabriel.f.tanaka@outlook.com" class="contact-email reveal" style="transition-delay:.09s">gabriel.f.tanaka@outlook.com</a>
+    <ul class="social-list reveal" style="transition-delay:.14s">
+      <li><a href="https://github.com/gabrielftanaka" target="_blank" rel="noopener"><span class="sn">GitHub</span><span class="sh">@gabrielftanaka</span><span class="sa">&#8594;</span></a></li>
+      <li><a href="https://linkedin.com/in/gabrielftanaka" target="_blank" rel="noopener"><span class="sn">LinkedIn</span><span class="sh">/in/gabrielftanaka</span><span class="sa">&#8594;</span></a></li>
+      <li><a href="https://hackerone.com/tanakz" target="_blank" rel="noopener"><span class="sn">HackerOne / Bugcrowd</span><span class="sh">@tanakz</span><span class="sa">&#8594;</span></a></li>
+      <li><a href="https://tanakz.medium.com/" target="_blank" rel="noopener"><span class="sn">Medium</span><span class="sh">@tanakz</span><span class="sa">&#8594;</span></a></li>
+    </ul>
+  </div>
+</div>
+
+<div class="nudge" id="nudge">nav &#8594;&nbsp;<span data-i18n="nav.about">sobre</span></div>
+
+<script>
+var T = {
+  pt: {
+    'nav.about':'sobre','nav.projects':'projetos','nav.blog':'blog','nav.contact':'contato',
+    'about.p1':'Me chamo <strong>Gabriel Tanaka</strong>. Trabalho com segurança da informação, com foco em <span style="color:var(--red)">segurança ofensiva</span>. Gosto de entender como sistemas falham para conseguir protegê-los.',
+    'about.p2':'Possuo experiência profissional com pentest, gestão de vulnerabilidades, criação de scripts simples voltados a Red Team, e conceitos de OSINT/CTI. Entretanto também possuo conhecimentos e uma básica experiência com <span style="color:#4d9fff">segurança defensiva</span>, com conhecimentos em operações de SOC, análise de logs, análise de incidentes, SIEM, EDR, além de conhecimento em frameworks como OWASP TOP 10, MITRE ATT&CK e Cyber Kill Chain.',
+    'about.p3':'Além de tudo isso, sou viciado em nu metal e em energéticos.',
+    'about.exp1.period':'2026 —<br>presente',
+    'about.exp1.role':'Estagiário em Segurança da Informação',
+    'about.exp1.co':'Banco Mercantil do Brasil',
+    'about.exp1.desc':'Atuação no time de Segurança em Infraestrutura, auxiliando em demandas, projetos e testes de segurança.',
+    'about.exp2.role':'Estagiário em Segurança da Informação - Red Team',
+    'about.exp2.co':'Interplayers',
+    'about.exp2.desc':'Apoio em execução de testes de intrusão (pentests), gestão de vulnerabilidades, elaboração de relatórios técnicos, participação em simulações e exercícios de Red Team e colaboração com times.',
+    'about.exp3.role':'Estagiário em Suporte Técnico e Infraestrutura',
+    'about.exp3.co':'Metal-Chek',
+    'about.exp3.desc':'Prestação de suporte técnico N1 e N2, implantação e administração do Microsoft 365, gerenciamento e configuração de redes e administração/manutenção do Active Directory.',
+    'about.exp.title':'experiência profissional',
+    'about.edu.title':'formação acadêmica',
+    'about.edu1.role':'Tecnólogo em Segurança Cibernética',
+    'about.edu1.co':'FIAP - Faculdade de Informática e Administração Paulista',
+    'about.edu1.desc':'Conquista de bolsa mérito de 20% e 30% durante todos os semestres da graduação, por estar entre os três alunos com maiores médias das turmas 1TDCOR e 2TDCOR. Participação ativa em CTFS da Global Solution e Challenge 2024 com a Fortinet.',
+    'about.edu2.role':'Bacharelado em Engenharia de Computação',
+    'about.edu2.co':'USF - Universidade São Francisco',
+    'about.edu2.desc':'Sólida formação em computação e ciclo básico de engenharia. São ofertadas diversas matérias essenciais para o mercado em TI, entre elas: programação estruturada, engenharia de software, estrutura de dados, arquitetura de computadores e tecnologias embarcadas, banco de dados, inteligência artificial, programação orientada a objetos, sistemas operacionais e distribuídos, redes de computadores, segurança da informação e entre outras.',
+    'proj.p1name':'Em breve',
+    'proj.p1':'-',
+    'proj.p2name':'Em breve','proj.p2':'-',
+    'proj.p3name':'Em breve','proj.p3':'-',
+    'blog.intro':'Escrevo alguns writeups e falo sobre cibersegurança no geral. Publico no Medium quando acho que algo vale a pena ser dito.',
+    'blog.cta':'ver todos os textos no Medium',
+    'blog.post1':'Em breve.',
+    'blog.post2':'Em breve.',
+    'blog.post3':'Em breve.',
+    'contact.intro':'Quer discutir sobre segurança ou só trocar uma ideia? Me manda um e-mail!'
+  },
+  en: {
+    'nav.about':'about','nav.projects':'projects','nav.blog':'blog','nav.contact':'contact',
+    'about.p1':'My name is <strong>Gabriel Tanaka</strong>. I work in information security, with a focus on <span style="color:var(--red)">offensive security</span>. I enjoy understanding how systems fail in order to protect them.',
+    'about.p2':'I have professional experience with pentesting, vulnerability management, writing basic Red Team scripts, and OSINT/CTI concepts. I also have knowledge and basic hands-on experience with <span style="color:#4d9fff">defensive security</span>, including SOC operations, log analysis, incident analysis, SIEM, EDR, and frameworks such as OWASP TOP 10, MITRE ATT&CK and Cyber Kill Chain.',
+    'about.p3':"On top of all that, I'm addicted to nu metal and energy drinks.",
+    'about.exp1.period':'2026 —<br>present',
+    'about.exp1.role':'Cybersecurity Intern',
+    'about.exp1.co':'Banco Mercantil do Brasil',
+    'about.exp1.desc':'Working on the Infrastructure Security team, assisting with demands, projects and security testing.',
+    'about.exp2.role':'Cybersecurity Intern - Red Team',
+    'about.exp2.co':'Interplayers',
+    'about.exp2.desc':'Supporting penetration testing execution, vulnerability management, technical report writing, participation in Red Team simulations and exercises, and collaboration with cross-functional teams.',
+    'about.exp3.role':'Technical Support & Infrastructure Intern',
+    'about.exp3.co':'Metal-Chek',
+    'about.exp3.desc':'Providing N1 and N2 technical support, deploying and administering Microsoft 365, managing and configuring networks, and administering/maintaining Active Directory.',
+    'about.exp.title':'professional experience',
+    'about.edu.title':'academic background',
+    'about.edu1.role':'Associate degree in Cybersecurity',
+    'about.edu1.co':'FIAP - Faculdade de Informática e Administração Paulista',
+    'about.edu1.desc':'Achievement of a 20% and 30% merit scholarship throughout every semester of the degree, for ranking among the top three students in classes 1TDCOR and 2TDCOR. Active participation in CTFs at the Global Solution and Challenge 2024 events with Fortinet.',
+    'about.edu2.role':"Bachelor's degree in Computer Engineering",
+    'about.edu2.co':'USF - Universidade São Francisco',
+    'about.edu2.desc':'Solid foundation in computing and core engineering subjects. The program covers essential IT topics including structured programming, software engineering, data structures, computer architecture, embedded technologies, databases, artificial intelligence, object-oriented programming, distributed and operating systems, computer networks, information security, and more.',
+    'proj.p1name':'Coming soon',
+    'proj.p1':'-',
+    'proj.p2name':'Coming soon','proj.p2':'-',
+    'proj.p3name':'Coming soon','proj.p3':'-',
+    'blog.intro':'I write some writeups and talk about cybersecurity in general. I publish on Medium when I feel something is worth sharing.',
+    'blog.cta':'read all posts on Medium',
+    'blog.post1':'Coming soon.',
+    'blog.post2':'Coming soon.',
+    'blog.post3':'Coming soon.',
+    'contact.intro':'Want to talk security or just exchange ideas? Send me an e-mail!'
+  }
+};
+
+var lang = 'pt';
+
+function applyLang(l) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var v = T[l][el.dataset.i18n]; if (v) el.textContent = v;
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(function(el) {
+    var v = T[l][el.dataset.i18nHtml]; if (v) el.innerHTML = v;
+  });
+  document.documentElement.lang = l === 'pt' ? 'pt-BR' : 'en';
+  ['pt','en'].forEach(function(x) {
+    var b1 = document.getElementById('btn-'+x);
+    var b2 = document.getElementById('dbtn-'+x);
+    if (b1) b1.classList.toggle('active', x===l);
+    if (b2) b2.classList.toggle('active', x===l);
+  });
+}
+
+function setLang(l) {
+  if (l === lang) return;
+  lang = l;
+  applyLang(l);
+}
+
+applyLang('pt');
+
+var hc = '0123456789abcdef';
+var hex = '';
+for (var i = 0; i < 200; i++) {
+  if (i > 0 && i % 8 === 0) hex += '  ';
+  hex += hc[Math.random()*16|0] + hc[Math.random()*16|0] + ' ';
+}
+document.getElementById('hexrow').textContent = hex;
+
+var out = document.getElementById('out');
+function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+var lines = [
+  {t:'prompt', cmd:'nmap -sV -p- localhost'},
+  {t:'blank'},
+  {t:'text', s:'<span class="cm">Starting Nmap 7.94 — tanaka@kali</span>'},
+  {t:'blank'},
+  {t:'text', s:'<span class="kw">PORT</span>     <span class="str">STATE  SERVICE    VERSION</span>'},
+  {t:'text', s:'<span class="str">22/tcp   open   ssh        OpenSSH 9.2</span>'},
+  {t:'text', s:'<span class="str">80/tcp   open   http       nginx 1.24</span>'},
+  {t:'text', s:'<span class="str">443/tcp  open   https      nginx 1.24</span>'},
+  {t:'blank'},
+  {t:'prompt', cmd:'cat /etc/passwd | grep tanaka'},
+  {t:'blank'},
+  {t:'text', s:'<span class="str">tanaka:x:1000:1000:</span><span class="kw">security,intern</span><span class="str">:/home/tanaka:/bin/bash</span>'},
+  {t:'blank'},
+  {t:'prompt', cmd:'', final:true}
+];
+
+async function typeText(span, text) {
+  for (var i = 0; i <= text.length; i++) {
+    span.textContent = text.slice(0, i);
+    await sleep(28 + Math.random() * 14);
+  }
+}
+
+async function runTerminal() {
+  await sleep(400);
+  for (var li = 0; li < lines.length; li++) {
+    var l = lines[li];
+    if (l.t === 'blank') {
+      var b = document.createElement('span'); b.className = 'blank';
+      out.appendChild(b); await sleep(40); continue;
+    }
+    if (l.t === 'text') {
+      var r = document.createElement('span'); r.className = 'tl'; r.innerHTML = l.s;
+      out.appendChild(r); await sleep(44); continue;
+    }
+    if (l.t === 'prompt') {
+      var row = document.createElement('span'); row.className = 'tl';
+      var ps = document.createElement('span'); ps.className = 'p'; ps.textContent = '~ $';
+      var cs = document.createElement('span'); cs.className = 'cmd';
+      var cur = document.createElement('span'); cur.className = 'cur';
+      row.appendChild(ps); row.appendChild(cs); row.appendChild(cur);
+      out.appendChild(row);
+      if (l.final) break;
+      await sleep(130);
+      await typeText(cs, ' ' + l.cmd);
+      cur.remove();
+      await sleep(180);
+    }
+  }
+  await sleep(500);
+  document.getElementById('nudge').classList.add('show');
+}
+
+runTerminal();
+
+var overlayEl  = document.getElementById('overlay');
+var rainCanvas = document.getElementById('rainCanvas');
+var flashEl    = document.getElementById('overlay-flash');
+var ctx        = rainCanvas.getContext('2d');
+var CHARS      = 'アイウエオカキクケコABCDEF0123456789<>{}[]|/%$#@!';
+var rainCols   = [];
+var rainRAF    = null;
+var rainBusy   = false;
+
+function initRain() {
+  rainCanvas.width  = window.innerWidth;
+  rainCanvas.height = window.innerHeight;
+  var cols = Math.floor(rainCanvas.width / 14);
+  rainCols = [];
+  for (var i = 0; i < cols; i++) {
+    rainCols.push((Math.random() * rainCanvas.height / 18) | 0);
+  }
+}
+
+function stepRain(alpha) {
+  ctx.fillStyle = 'rgba(0,0,0,' + alpha + ')';
+  ctx.fillRect(0, 0, rainCanvas.width, rainCanvas.height);
+  ctx.font = '13px IBM Plex Mono,monospace';
+  for (var i = 0; i < rainCols.length; i++) {
+    var y  = rainCols[i];
+    var ch = CHARS[Math.random() * CHARS.length | 0];
+    ctx.fillStyle = Math.random() > 0.88 ? '#ffffff'
+                  : Math.random() > 0.5  ? '#a855f7' : '#5b21b6';
+    ctx.fillText(ch, i * 14, y * 18);
+    rainCols[i] = (y * 18 > rainCanvas.height && Math.random() > 0.97) ? 0 : y + 1;
+  }
+}
+
+function hackTransition(callback) {
+  if (rainBusy) return;
+  rainBusy = true;
+  initRain();
+  ctx.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+  overlayEl.style.display = 'block';
+  flashEl.style.transition = 'none';
+  flashEl.style.opacity    = '0';
+
+  var T_RAIN = 380;
+  var T_HOLD = 55;
+  var T_FADE = 260;
+  var t0 = performance.now();
+
+  function phaseRain(now) {
+    var el  = now - t0;
+    var pct = Math.min(el / T_RAIN, 1);
+    stepRain(0.12 + pct * 0.1);
+    if (el < T_RAIN) {
+      rainRAF = requestAnimationFrame(phaseRain);
+    } else {
+      flashEl.style.transition = 'none';
+      flashEl.style.opacity    = '1';
+      callback();
+      setTimeout(function() {
+        flashEl.style.transition = 'opacity ' + T_FADE + 'ms cubic-bezier(.4,0,.2,1)';
+        flashEl.style.opacity    = '0';
+        var t1 = performance.now();
+        function phaseOut(now2) {
+          stepRain(0.18);
+          if (now2 - t1 < T_FADE + 60) {
+            rainRAF = requestAnimationFrame(phaseOut);
+          } else {
+            cancelAnimationFrame(rainRAF);
+            ctx.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+            flashEl.style.transition = 'none';
+            flashEl.style.opacity    = '0';
+            overlayEl.style.display  = 'none';
+            rainBusy = false;
+          }
+        }
+        rainRAF = requestAnimationFrame(phaseOut);
+      }, T_HOLD);
+    }
+  }
+
+  rainRAF = requestAnimationFrame(phaseRain);
+}
+
+var current = 'hero';
+var busy    = false;
+
+function navigate(target) {
+  if (target === current || busy) return;
+  busy = true;
+  hackTransition(function() {
+    document.getElementById('page-' + current).classList.remove('active');
+    document.getElementById('page-' + target).classList.add('active');
+    current = target;
+    window.scrollTo(0, 0);
+    document.querySelectorAll('#page-' + target + ' .reveal').forEach(function(el) {
+      el.classList.remove('in'); void el.offsetWidth;
+    });
+    revealPage(target);
+    busy = false;
+  });
+}
+
+function revealPage(id) {
+  document.querySelectorAll('#page-' + id + ' .reveal').forEach(function(el) {
+    var d = parseFloat(el.style.transitionDelay || '0') * 1000;
+    setTimeout(function() { el.classList.add('in'); }, 60 + d);
+  });
+}
+
+function toggleDrawer() {
+  var t = document.getElementById('navToggle');
+  var d = document.getElementById('navDrawer');
+  var o = d.classList.toggle('open');
+  t.classList.toggle('open', o);
+}
+
+function closeDrawer() {
+  document.getElementById('navDrawer').classList.remove('open');
+  document.getElementById('navToggle').classList.remove('open');
+}
+
+document.addEventListener('click', function(e) {
+  var d = document.getElementById('navDrawer');
+  var t = document.getElementById('navToggle');
+  if (d.classList.contains('open') && !d.contains(e.target) && !t.contains(e.target)) {
+    closeDrawer();
+  }
+});
+
+window.addEventListener('resize', function() {
+  if (rainBusy) initRain();
+});
+</script>
+</body>
+</html>
